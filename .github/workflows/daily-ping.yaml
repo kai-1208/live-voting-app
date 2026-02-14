@@ -1,0 +1,27 @@
+name: Daily Supabase Ping
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day (09:00 JST)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Project
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          echo "Pinging $SUPABASE_URL..."
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" "$SUPABASE_URL")
+          echo "Status Code: $STATUS_CODE"
+          
+          if [[ "$STATUS_CODE" -ge 200 && "$STATUS_CODE" -lt 400 ]]; then
+            echo "Success: Project is active."
+          else
+            echo "Warning: Received unexpected status code."
+            # Uncomment the next line if you want the workflow to fail on bad status
+            # exit 1 
+          fi
