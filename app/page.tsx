@@ -41,7 +41,7 @@ export default function Home() {
   return (
     <div className="container mx-auto p-4 relative z-10">
       <h1 className="text-4xl font-extrabold mb-8 text-center text-white drop-shadow-lg tracking-wider">
-        🚀 Live Voting Arena
+        🚀 Live Voting App
       </h1>
       
       <CreatePollForm onPollCreated={fetchPolls} />
