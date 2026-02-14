@@ -6,6 +6,7 @@ export interface Poll {
     votes_a: number;
     votes_b: number;
     created_at: string;
+    expires_at?: string;
 }
 
 /*
