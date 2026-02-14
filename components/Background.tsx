@@ -8,7 +8,7 @@ type ShootingStar = {
   startX: number;
   startY: number;
 };
-
+{/* eslint-disable-next-line react-hooks/exhaustive-deps */}
 export default function Background() {
   const [isMounted, setIsMounted] = useState(false);
   const [stars, setStars] = useState<ShootingStar[]>([]);

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Poll } from "@/types/index";
 
 interface CreatePollFormProps {
   onPollCreated: () => void;
@@ -69,9 +68,13 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
       
       // 親コンポーネントに更新を通知
       onPollCreated();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating poll:", err);
-      setError(err.message || "作成に失敗しました");
+      if (err instanceof Error) {
+        setError(err.message || "作成に失敗しました");
+      } else {
+        setError("作成に失敗しました");
+      }
     } finally {
       setLoading(false);
     }
