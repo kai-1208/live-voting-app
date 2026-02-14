@@ -1,27 +1,22 @@
-name: Daily Supabase Ping
+name: Prevent Supabase Sleep (Daily Ping)
 
 on:
   schedule:
-    # Runs at 00:00 UTC every day (09:00 JST)
-    - cron: '0 0 * * *'
-  workflow_dispatch: # Allows manual triggering of the workflow
+    # UTC 01:15 AM に実行 (JST 10:15 AM)
+    - cron: "15 1 * * *"
+  workflow_dispatch:
 
 jobs:
-  ping:
+  make_request:
     runs-on: ubuntu-latest
+    env:
+      TZ: "Asia/Tokyo"
+
     steps:
-      - name: Ping Supabase Project
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      - name: Send HTTP GET request
         run: |
-          echo "Pinging $SUPABASE_URL..."
-          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" "$SUPABASE_URL")
-          echo "Status Code: $STATUS_CODE"
-          
-          if [[ "$STATUS_CODE" -ge 200 && "$STATUS_CODE" -lt 400 ]]; then
-            echo "Success: Project is active."
-          else
-            echo "Warning: Received unexpected status code."
-            # Uncomment the next line if you want the workflow to fail on bad status
-            # exit 1 
-          fi
+          curl -X GET "https://live-voting-app-demo.vercel.app/" -v --fail || exit 1
+
+      - name: Log request time
+        run: |
+          echo "Keep-alive ping completed at $(date)"
