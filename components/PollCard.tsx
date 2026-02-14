@@ -157,17 +157,17 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.1 }}
-            className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-xl shadow-lg run-off-border p-6 md:p-8 relative"
+            className="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-xl shadow-xl border border-white/20 p-6 md:p-8 relative overflow-hidden"
         >
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">
+            <h2 className="text-2xl font-bold text-white mb-2 text-center drop-shadow-md">
                 {currentPoll.question}
             </h2>
             {currentPoll.expires_at && (
                 <div className="text-center mb-6">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${
                         isExpired 
-                            ? "bg-red-100 text-red-800 border-red-200" 
-                            : "bg-green-100 text-green-800 border-green-200"
+                            ? "bg-red-500/20 text-red-100 border-red-400/30" 
+                            : "bg-green-500/20 text-green-100 border-green-400/30"
                     }`}>
                         {isExpired ? "投票終了" : "投票受付中"} - {timeLeft}
                     </span>
@@ -183,8 +183,8 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
                         <button
                             onClick={() => handleVote("option_a")}
                             disabled={isVoting || hasVoted || isExpired}
-                            className={`w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-colors 
-                            ${(isVoting || hasVoted || isExpired) ? "opacity-50 cursor-not-allowed" : ""}`}
+                            className={`w-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-blue-500/40 transform hover:-translate-y-0.5
+                            ${(isVoting || hasVoted || isExpired) ? "opacity-50 cursor-not-allowed transform-none hover:shadow-none" : ""}`}
                         >
                             {currentPoll.option_a}
                         </button>
@@ -194,7 +194,7 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
                                     initial={{ opacity: 0, y: 0, scale: 0.5 }}
                                     animate={{ opacity: 1, y: -20, scale: 1.2 }}
                                     exit={{ opacity: 0, y: -40 }}
-                                    className="absolute top-0 right-0 transform -translate-y-full text-blue-600 font-bold text-xl pointer-events-none"
+                                    className="absolute top-0 right-0 transform -translate-y-full text-blue-300 font-bold text-xl pointer-events-none drop-shadow-lg"
                                 >
                                     +1
                                 </motion.div>
@@ -206,8 +206,8 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
                         <button
                             onClick={() => handleVote("option_b")}
                             disabled={isVoting || hasVoted || isExpired}
-                            className={`w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors 
-                            ${(isVoting || hasVoted || isExpired) ? "opacity-50 cursor-not-allowed" : ""}`}
+                            className={`w-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-red-500/40 transform hover:-translate-y-0.5
+                            ${(isVoting || hasVoted || isExpired) ? "opacity-50 cursor-not-allowed transform-none hover:shadow-none" : ""}`}
                         >
                             {currentPoll.option_b}
                         </button>
@@ -217,7 +217,7 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
                                     initial={{ opacity: 0, y: 0, scale: 0.5 }}
                                     animate={{ opacity: 1, y: -20, scale: 1.2 }}
                                     exit={{ opacity: 0, y: -40 }}
-                                    className="absolute top-0 right-0 transform -translate-y-full text-red-600 font-bold text-xl pointer-events-none"
+                                    className="absolute top-0 right-0 transform -translate-y-full text-red-300 font-bold text-xl pointer-events-none drop-shadow-lg"
                                 >
                                     +1
                                 </motion.div>
@@ -228,32 +228,32 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
 
                 {/* Unified Progress Bar */}
                 <div className="mt-6">
-                    <div className="flex justify-between text-sm font-semibold text-gray-600 mb-2">
-                        <span className="text-blue-600">{percentA}% ({currentPoll.votes_a})</span>
-                        <span className="text-red-600">{percentB}% ({currentPoll.votes_b})</span>
+                    <div className="flex justify-between text-sm font-semibold text-gray-200 mb-2">
+                        <span className="text-blue-300">{percentA}% ({currentPoll.votes_a})</span>
+                        <span className="text-red-300">{percentB}% ({currentPoll.votes_b})</span>
                     </div>
                     
-                    <div className="w-full h-6 bg-gray-200 rounded-full overflow-hidden flex shadow-inner">
+                    <div className="w-full h-6 bg-gray-700/50 rounded-full overflow-hidden flex shadow-inner border border-white/5">
                         <div 
-                            className="h-full bg-blue-500 transition-all duration-700 ease-in-out flex items-center justify-center text-xs text-white font-bold"
+                            className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-700 ease-in-out flex items-center justify-center text-xs text-white font-bold shadow-blue-500/20"
                             style={{ width: `${percentA}%` }}
                         >
                             {percentA > 15 && `${percentA}%`}
                         </div>
                         <div 
-                            className="h-full bg-red-500 transition-all duration-700 ease-in-out flex items-center justify-center text-xs text-white font-bold"
+                            className="h-full bg-gradient-to-r from-red-400 to-red-600 transition-all duration-700 ease-in-out flex items-center justify-center text-xs text-white font-bold shadow-red-500/20"
                             style={{ width: `${percentB}%` }}
                         >
                             {percentB > 15 && `${percentB}%`}
                         </div>
                     </div>
-                    <div className="text-center text-xs text-gray-500 mt-2">
+                    <div className="text-center text-xs text-gray-400 mt-2">
                         Total Votes: {totalVotes}
                     </div>
                 </div>
 
                 {hasVoted && (
-                    <p className="text-center text-green-600 font-semibold mt-2 animate-pulse">
+                    <p className="text-center text-green-400 font-semibold mt-2 animate-pulse drop-shadow-md">
                         Thanks for voting!
                     </p>
                 )}
