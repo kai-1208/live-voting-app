@@ -7,6 +7,14 @@ interface CreatePollFormProps {
   onPollCreated: () => void;
 }
 
+const OPTION_COLORS = [
+  { name: '赤', class: 'bg-red-500', border: 'border-red-500', text: 'text-red-500' },
+  { name: '青', class: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
+  { name: '緑', class: 'bg-green-500', border: 'border-green-500', text: 'text-green-500' },
+  { name: '黄', class: 'bg-yellow-500', border: 'border-yellow-500', text: 'text-yellow-500' },
+  { name: '紫', class: 'bg-purple-500', border: 'border-purple-500', text: 'text-purple-500' },
+];
+
 export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
   // デフォルトで24時間後の日時を設定
   const getDefaultExpiresAt = () => {
@@ -23,17 +31,36 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
   };
 
   const [question, setQuestion] = useState("");
-  const [optionA, setOptionA] = useState("");
-  const [optionB, setOptionB] = useState("");
+  // 初期状態は2つの選択肢
+  const [options, setOptions] = useState<string[]>(["", ""]);
   const [expiresAt, setExpiresAt] = useState(getDefaultExpiresAt());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = value;
+    setOptions(newOptions);
+  };
+
+  const addOption = () => {
+    if (options.length < 5) {
+      setOptions([...options, ""]);
+    }
+  };
+
+  const removeOption = (index: number) => {
+    if (options.length > 2) {
+      const newOptions = options.filter((_, i) => i !== index);
+      setOptions(newOptions);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question || !optionA || !optionB || !expiresAt) {
-      setError("すべて入力してください");
+    if (!question || options.some(opt => !opt.trim()) || !expiresAt) {
+      setError("すべての項目を入力してください");
       return;
     }
 
@@ -41,15 +68,22 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
     setError("");
 
     try {
+      // 選択肢データを構築
+      const optionsData = options.map((label, index) => ({
+        label,
+        votes: 0,
+        color: OPTION_COLORS[index].class
+      }));
+
       const { error } = await supabase
         .from("polls")
         .insert([
           {
             question,
-            option_a: optionA,
-            option_b: optionB,
-            votes_a: 0,
-            votes_b: 0,
+            options: optionsData,
+            // 既存カラムへの互換性のためダミーデータを入れる場合もあるが、
+            // RPC実行済と仮定して options カラムのみに注力する
+            // もし NOT NULL 制約が残っているとエラーになるため、API側で対処済み前提
             expires_at: new Date(expiresAt).toISOString(),
           },
         ])
@@ -61,8 +95,7 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
 
       // 入力欄クリア
       setQuestion("");
-      setOptionA("");
-      setOptionB("");
+      setOptions(["", ""]);
       setExpiresAt(getDefaultExpiresAt());
       setIsOpen(false);
       
@@ -126,33 +159,47 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-blue-300 mb-1">
-              選択肢 A (青)
-            </label>
-            <input
-              type="text"
-              value={optionA}
-              onChange={(e) => setOptionA(e.target.value)}
-              placeholder="例: きのこの山"
-              className="w-full px-4 py-2 rounded-lg bg-black/40 border border-blue-500/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white placeholder-gray-500 outline-none transition-all"
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-red-300 mb-1">
-              選択肢 B (赤)
-            </label>
-            <input
-              type="text"
-              value={optionB}
-              onChange={(e) => setOptionB(e.target.value)}
-              placeholder="例: たけのこの里"
-              className="w-full px-4 py-2 rounded-lg bg-black/40 border border-red-500/30 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-white placeholder-gray-500 outline-none transition-all"
-              disabled={loading}
-            />
-          </div>
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-300">
+            選択肢 (2〜5個)
+          </label>
+          
+          {options.map((option, index) => (
+            <div key={index} className="flex gap-2 items-center animate-fade-in">
+              <span className={`text-sm font-bold w-6 ${OPTION_COLORS[index].text}`}>
+                {index + 1}.
+              </span>
+              <input
+                type="text"
+                value={option}
+                onChange={(e) => handleOptionChange(index, e.target.value)}
+                placeholder={`選択肢 ${index + 1} (${OPTION_COLORS[index].name})`}
+                className={`flex-1 px-4 py-2 rounded-lg bg-black/40 border focus:ring-1 text-white placeholder-gray-500 outline-none transition-all ${OPTION_COLORS[index].border} ring-opacity-50`}
+                disabled={loading}
+                style={{ borderColor: `var(--color-${OPTION_COLORS[index].class.split('-')[1]}-500)` }}
+              />
+              {options.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => removeOption(index)}
+                  className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                  aria-label="削除"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+
+          {options.length < 5 && (
+            <button
+              type="button"
+              onClick={addOption}
+              className="text-sm text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1 transition-colors ml-8"
+            >
+              ＋ 選択肢を追加
+            </button>
+          )}
         </div>
 
         <div>

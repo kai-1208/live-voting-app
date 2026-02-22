@@ -15,11 +15,9 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
     const [isVoting, setIsVoting] = useState(false);
     const [hasVoted, setHasVoted] = useState(false);
     
-    // Animation states
-    const [showPlusOneA, setShowPlusOneA] = useState(false);
-    const [showPlusOneB, setShowPlusOneB] = useState(false);
-    const prevVotesA = useRef(poll.votes_a);
-    const prevVotesB = useRef(poll.votes_b);
+    // Animation states: track which option index just got a vote
+    const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
+    const prevVotes = useRef<number[]>(poll.options ? poll.options.map(o => o.votes) : [0, 0]);
 
     // Check for expiration
     const [isExpired, setIsExpired] = useState(false);
@@ -70,8 +68,6 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
 
     // Subscribe to real-time changes
     useEffect(() => {
-        // Generate a unique channel ID for this specific subscription instance
-        // This helps avoid collisions/race conditions in React Strict Mode
         const channelId = `poll-${poll.id}-${Date.now()}`;
         const channel = supabase
             .channel(channelId)
@@ -84,56 +80,45 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
                     filter: `id=eq.${poll.id}`,
                 },
                 (payload) => {
-                    // Update local state when DB changes
                     const newPoll = payload.new as Poll;
                     setCurrentPoll(newPoll);
 
-                    // Check for vote increases to trigger animations
-                    if (newPoll.votes_a > prevVotesA.current) {
-                        setShowPlusOneA(true);
-                        setTimeout(() => setShowPlusOneA(false), 1000);
+                    // Check for vote increases
+                    if (newPoll.options) {
+                        newPoll.options.forEach((opt, idx) => {
+                            const prev = prevVotes.current[idx] || 0;
+                            if (opt.votes > prev) {
+                                setAnimatingIndex(idx);
+                                setTimeout(() => setAnimatingIndex(null), 1000);
+                            }
+                        });
+                        prevVotes.current = newPoll.options.map(o => o.votes);
                     }
-                    if (newPoll.votes_b > prevVotesB.current) {
-                        setShowPlusOneB(true);
-                        setTimeout(() => setShowPlusOneB(false), 1000);
-                    }
-                    
-                    // Update refs
-                    prevVotesA.current = newPoll.votes_a;
-                    prevVotesB.current = newPoll.votes_b;
                 }
             )
             .subscribe((status, err) => {
-                console.log(`Poll ${poll.id} subscription status:`, status);
-                if (err) {
-                    console.error("Subscription error:", err);
-                }
+                if (err) console.error("Subscription error:", err);
             });
 
         return () => {
-             // Clean up subscription
             supabase.removeChannel(channel);
         };
     }, [poll.id]);
 
     // Handle vote submission
-    const handleVote = async (option: "option_a" | "option_b") => {
+    const handleVote = async (optionIndex: number) => {
         if (isVoting || hasVoted || isExpired) return;
         setIsVoting(true);
 
-        const columnToUpdate = option === "option_a" ? "votes_a" : "votes_b";
-        const currentVotes = option === "option_a" ? currentPoll.votes_a : currentPoll.votes_b;
-
         try {
-            const { error } = await supabase
-                .from("polls")
-                .update({ [columnToUpdate]: currentVotes + 1 })
-                .eq("id", currentPoll.id);
+            const { error } = await supabase.rpc('vote_for_option', {
+                poll_id: String(currentPoll.id),
+                option_index: optionIndex
+            });
 
             if (error) {
                 console.error("Error voting:", error);
             } else {
-                // Mark as voted in local storage
                 localStorage.setItem(`poll-voted-${poll.id}`, "true");
                 setHasVoted(true);
             }
@@ -144,11 +129,9 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
         }
     };
 
-    const totalVotes = currentPoll.votes_a + currentPoll.votes_b;
-    
-    // Calculate percentages
-    const percentA = totalVotes === 0 ? 50 : Math.round((currentPoll.votes_a / totalVotes) * 100);
-    const percentB = totalVotes === 0 ? 50 : 100 - percentA;
+    // Calculate totals
+    const options = currentPoll.options || []; // Fallback empty array
+    const totalVotes = options.reduce((sum, opt) => sum + opt.votes, 0);
 
     return (
         <motion.div 
@@ -162,7 +145,7 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
             <h2 className="text-2xl font-bold text-white mb-2 text-center drop-shadow-md">
                 {currentPoll.question}
             </h2>
-            {currentPoll.expires_at && (
+            {currentPoll.expires_at ? (
                 <div className="text-center mb-6">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${
                         isExpired 
@@ -172,91 +155,63 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
                         {isExpired ? "投票終了" : "投票受付中"} - {timeLeft}
                     </span>
                 </div>
-            )}
-            {!currentPoll.expires_at && <div className="mb-6"></div>}
+            ) : <div className="mb-6"></div>}
 
-            <div className="flex flex-col space-y-6">
-                
-                {/* Voting Buttons */}
-                <div className="flex justify-between gap-4 relative">
-                    <div className="relative flex-1">
-                        <button
-                            onClick={() => handleVote("option_a")}
-                            disabled={isVoting || hasVoted || isExpired}
-                            className={`w-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-blue-500/40 transform hover:-translate-y-0.5
-                            ${(isVoting || hasVoted || isExpired) ? "opacity-50 cursor-not-allowed transform-none hover:shadow-none" : ""}`}
-                        >
-                            {currentPoll.option_a}
-                        </button>
-                        <AnimatePresence>
-                            {showPlusOneA && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                                    animate={{ opacity: 1, y: -20, scale: 1.2 }}
-                                    exit={{ opacity: 0, y: -40 }}
-                                    className="absolute top-0 right-0 transform -translate-y-full text-blue-300 font-bold text-xl pointer-events-none drop-shadow-lg"
-                                >
-                                    +1
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    <div className="relative flex-1">
-                        <button
-                            onClick={() => handleVote("option_b")}
-                            disabled={isVoting || hasVoted || isExpired}
-                            className={`w-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-red-500/40 transform hover:-translate-y-0.5
-                            ${(isVoting || hasVoted || isExpired) ? "opacity-50 cursor-not-allowed transform-none hover:shadow-none" : ""}`}
-                        >
-                            {currentPoll.option_b}
-                        </button>
-                        <AnimatePresence>
-                            {showPlusOneB && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                                    animate={{ opacity: 1, y: -20, scale: 1.2 }}
-                                    exit={{ opacity: 0, y: -40 }}
-                                    className="absolute top-0 right-0 transform -translate-y-full text-red-300 font-bold text-xl pointer-events-none drop-shadow-lg"
-                                >
-                                    +1
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+            <div className="flex flex-col space-y-4">
+                {/* Voting Buttons List */}
+                <div className="space-y-3">
+                    {options.map((option, idx) => (
+                        <div key={idx} className="relative">
+                            <button
+                                onClick={() => handleVote(idx)}
+                                disabled={isVoting || hasVoted || isExpired}
+                                className={`w-full text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg transform hover:-translate-y-0.5 flex justify-between items-center
+                                ${option.color} 
+                                ${(isVoting || hasVoted || isExpired) ? "opacity-60 cursor-not-allowed transform-none hover:shadow-none grayscale-[0.3]" : "hover:opacity-90 hover:shadow-current/40"}`}
+                            >
+                                <span>{option.label}</span>
+                                {hasVoted && <span>{option.votes}票</span>}
+                            </button>
+                             <AnimatePresence>
+                                {animatingIndex === idx && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                                        animate={{ opacity: 1, y: -20, scale: 1.2 }}
+                                        exit={{ opacity: 0, y: -40 }}
+                                        className="absolute top-0 right-4 transform -translate-y-full text-white font-bold text-xl pointer-events-none drop-shadow-lg z-10"
+                                    >
+                                        +1
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Unified Progress Bar */}
-                <div className="mt-6">
-                    <div className="flex justify-between text-sm font-semibold text-gray-200 mb-2">
-                        <span className="text-blue-300">{percentA}% ({currentPoll.votes_a})</span>
-                        <span className="text-red-300">{percentB}% ({currentPoll.votes_b})</span>
+                <div className="mt-4">
+                    <div className="w-full h-4 bg-gray-700/50 rounded-full overflow-hidden flex shadow-inner border border-white/5">
+                        {options.map((option, idx) => {
+                            const percent = totalVotes === 0 ? 0 : (option.votes / totalVotes) * 100;
+                            if (percent === 0) return null;
+                            return (
+                                <div 
+                                    key={idx}
+                                    className={`h-full ${option.color} transition-all duration-700 ease-in-out`}
+                                    style={{ width: `${percent}%` }}
+                                    title={`${option.label}: ${Math.round(percent)}%`}
+                                />
+                            );
+                        })}
+                        {totalVotes === 0 && (
+                            <div className="w-full h-full bg-gray-600/30" />
+                        )}
                     </div>
-                    
-                    <div className="w-full h-6 bg-gray-700/50 rounded-full overflow-hidden flex shadow-inner border border-white/5">
-                        <div 
-                            className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-700 ease-in-out flex items-center justify-center text-xs text-white font-bold shadow-blue-500/20"
-                            style={{ width: `${percentA}%` }}
-                        >
-                            {percentA > 15 && `${percentA}%`}
-                        </div>
-                        <div 
-                            className="h-full bg-gradient-to-r from-red-400 to-red-600 transition-all duration-700 ease-in-out flex items-center justify-center text-xs text-white font-bold shadow-red-500/20"
-                            style={{ width: `${percentB}%` }}
-                        >
-                            {percentB > 15 && `${percentB}%`}
-                        </div>
-                    </div>
-                    <div className="text-center text-xs text-gray-400 mt-2">
-                        Total Votes: {totalVotes}
+                    <div className="flex justify-between text-xs text-gray-400 mt-2">
+                        <span>Total Votes: {totalVotes}</span>
+                        {hasVoted && <span className="text-green-400 animate-pulse">Voted!</span>}
                     </div>
                 </div>
-
-                {hasVoted && (
-                    <p className="text-center text-green-400 font-semibold mt-2 animate-pulse drop-shadow-md">
-                        Thanks for voting!
-                    </p>
-                )}
             </div>
         </motion.div>
     );
