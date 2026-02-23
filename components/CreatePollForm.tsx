@@ -36,7 +36,6 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
   const [expiresAt, setExpiresAt] = useState(getDefaultExpiresAt());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
 
   const handleOptionChange = (index: number, value: string) => {
     const newOptions = [...options];
@@ -97,7 +96,6 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
       setQuestion("");
       setOptions(["", ""]);
       setExpiresAt(getDefaultExpiresAt());
-      setIsOpen(false);
       
       // 親コンポーネントに更新を通知
       onPollCreated();
@@ -113,31 +111,8 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
     }
   };
 
-  if (!isOpen) {
-    return (
-      <div className="flex justify-center mb-8">
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 backdrop-blur-sm bg-opacity-80 border border-white/20"
-        >
-          ＋ 新しい対決を作成する
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full max-w-2xl mx-auto mb-10 p-6 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl animate-fade-in-down">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-white">新しい対決テーマを作成</h2>
-        <button 
-          onClick={() => setIsOpen(false)}
-          className="text-gray-400 hover:text-white transition-colors"
-        >
-          ✕
-        </button>
-      </div>
-      
+    <div className="w-full animate-fade-in-down">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
@@ -218,19 +193,11 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
           </p>
         </div>
 
-        <div className="pt-2 flex justify-end gap-3">
-            <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-sm font-medium"
-                disabled={loading}
-            >
-                キャンセル
-            </button>
+        <div className="pt-2 flex justify-end">
             <button
                 type="submit"
                 disabled={loading}
-                className={`px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-lg hover:shadow-purple-500/30 transition-all transform hover:scale-105
+                className={`w-full py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-lg hover:shadow-purple-500/30 transition-all transform hover:scale-[1.02]
                 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
                 {loading ? "作成中..." : "作成する"}

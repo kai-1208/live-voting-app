@@ -61,17 +61,6 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       {/* Main Content */}
       <div className="relative z-10 min-h-screen">
           {children}
-          
-          {/* Toggle Button */}
-          <div className="fixed top-4 right-4 z-50">
-            <button
-              onClick={toggleBackground}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-sm text-white font-medium transition-colors shadow-lg flex items-center gap-2"
-            >
-              <span>🎨</span> 
-              {background === "night_sky" ? "花火モードへ" : "星空モードへ"}
-            </button>
-          </div>
       </div>
     </BackgroundContext.Provider>
   );

@@ -176,26 +176,31 @@ export default function NightSkyBackground() {
 
 function ShootingStarItem({ startX, startY }: { startX: number; startY: number }) {
   // Determine direction (mostly downwards-left or downwards-right)
-  const angle = Math.random() > 0.5 ? 45 : 135; 
-  const distance = 1000; // Increased distance for more impact
-  
-  // Calculate end position based on angle
-  const rad = (angle * Math.PI) / 180;
-  const endX = startX + Math.cos(rad) * distance;
-  const endY = startY + Math.sin(rad) * distance;
+  // useMemoを使わないと、レンダリング毎にランダム値が変わってしまい、
+  // アニメーション途中で再計算されると軌道が変わる（カクつく）原因になる
+  const [target] = useState(() => {
+    const angle = Math.random() > 0.5 ? 45 : 135;
+    const distance = 1500; // 十分な距離を確保
+    const rad = (angle * Math.PI) / 180;
+    return {
+        x: startX + Math.cos(rad) * distance,
+        y: startY + Math.sin(rad) * distance,
+        angle
+    };
+  });
 
   return (
     <motion.div
-      initial={{ x: startX, y: startY, opacity: 1, scale: 0.5 }}
-      animate={{ x: endX, y: endY, opacity: 0, scale: 1 }}
+      initial={{ left: startX, top: startY, opacity: 1, scale: 0.5 }}
+      animate={{ left: target.x, top: target.y, opacity: 0, scale: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 1.2, ease: "easeOut" }} // Slightly slower duration
-      className="absolute w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_2px_rgba(255,255,255,0.8)] pointer-events-none z-50" // Smaller, subtler glow
+      transition={{ duration: 1.2, ease: "easeOut" }}
+      className="absolute w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_8px_2px_rgba(255,255,255,0.8)] pointer-events-none z-50 origin-center"
     >
-        {/* Tail - Thinner and slightly shorter */}
+        {/* Tail */}
         <div 
             className="absolute top-1/2 left-1/2 w-48 h-[2px] bg-gradient-to-r from-transparent via-blue-50/50 to-white transform -translate-y-1/2 -translate-x-full origin-right"
-            style={{ transform: `rotate(${angle + 180}deg)` }}
+            style={{ transform: `rotate(${target.angle}deg)` }}
         />
     </motion.div>
   );

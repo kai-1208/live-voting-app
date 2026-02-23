@@ -110,6 +110,27 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
         if (isVoting || hasVoted || isExpired) return;
         setIsVoting(true);
 
+        // Optimistic UI Update: Immediately reflect the vote locally
+        // This ensures the animation and progress bar update instantly without waiting for the network roundtrip
+        const optimisticPoll = { 
+            ...currentPoll, 
+            options: currentPoll.options?.map((opt, idx) => 
+                idx === optionIndex ? { ...opt, votes: opt.votes + 1 } : opt
+            )
+        };
+        setCurrentPoll(optimisticPoll);
+        
+        // Trigger visual effects immediately
+        setAnimatingIndex(optionIndex);
+        setTimeout(() => setAnimatingIndex(null), 1000);
+
+        // Update ref to prevent duplicate animation triggered by incoming subscription update
+        if (prevVotes.current) {
+             const newVotes = [...prevVotes.current];
+             newVotes[optionIndex] = (newVotes[optionIndex] || 0) + 1;
+             prevVotes.current = newVotes;
+        }
+
         try {
             const { error } = await supabase.rpc('vote_for_option', {
                 poll_id: String(currentPoll.id),
@@ -118,12 +139,15 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
 
             if (error) {
                 console.error("Error voting:", error);
+                // Rollback on error (optional, but good practice)
+                setCurrentPoll(currentPoll); 
             } else {
                 localStorage.setItem(`poll-voted-${poll.id}`, "true");
                 setHasVoted(true);
             }
         } catch (err) {
             console.error("Unexpected error:", err);
+            setCurrentPoll(currentPoll);
         } finally {
             setIsVoting(false);
         }
@@ -135,18 +159,20 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
 
     return (
         <motion.div 
-            key={sortType}
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.1 }}
-            className="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-xl shadow-xl border border-white/20 p-6 md:p-8 relative overflow-hidden"
+            layout
+            key={poll.id} 
+            variants={{
+                hidden: { opacity: 0, y: 50 },
+                show: { opacity: 1, y: 0 }
+            }}
+            transition={{ duration: 0.5 }}
+            className="w-full mx-auto bg-white/5 backdrop-blur-[1px] rounded-xl shadow-lg shadow-black/20 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 p-5 relative overflow-hidden group"
         >
-            <h2 className="text-2xl font-bold text-white mb-2 text-center drop-shadow-md">
+            <h2 className="text-xl font-bold text-white mb-2 text-center drop-shadow-md">
                 {currentPoll.question}
             </h2>
             {currentPoll.expires_at ? (
-                <div className="text-center mb-6">
+                <div className="text-center mb-4">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${
                         isExpired 
                             ? "bg-red-500/20 text-red-100 border-red-400/30" 
@@ -165,12 +191,12 @@ const PollCard: React.FC<PollCardProps> = ({ poll, index = 0, sortType = "defaul
                             <button
                                 onClick={() => handleVote(idx)}
                                 disabled={isVoting || hasVoted || isExpired}
-                                className={`w-full text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg transform hover:-translate-y-0.5 flex justify-between items-center
+                                className={`w-full relative overflow-hidden text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg transform hover:-translate-y-0.5 flex justify-between items-center group
                                 ${option.color} 
                                 ${(isVoting || hasVoted || isExpired) ? "opacity-60 cursor-not-allowed transform-none hover:shadow-none grayscale-[0.3]" : "hover:opacity-90 hover:shadow-current/40"}`}
                             >
-                                <span>{option.label}</span>
-                                {hasVoted && <span>{option.votes}票</span>}
+                                <span className="z-10 relative">{option.label}</span>
+                                <span className="z-10 relative font-mono tabular-nums">{option.votes}票</span>
                             </button>
                              <AnimatePresence>
                                 {animatingIndex === idx && (
