@@ -3,8 +3,9 @@
 [![Vercel Deploy](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel)](https://live-voting-app-demo.vercel.app/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-**🌐 公開URL**: [https://live-voting-app-demo.vercel.app/](https://live-voting-app-demo.vercel.app/)
+**公開URL**: [https://live-voting-app-demo.vercel.app/](https://live-voting-app-demo.vercel.app/)
 
 ---
 
@@ -14,7 +15,7 @@
 
 ### 開発の背景・経緯
 現代のSNSやアンケートツールでは、意思決定や意見の集約が「非同期」で行われることが多く、「今、この瞬間に意見が交わされ、盛り上がっている」という熱量を感じにくいという課題がありました。
-そこで、「簡単にみんなの意見を収集し、一目で全体の傾向がわかる」という実用性に加え、**「ユーザーのアクションが即座に光やアニメーションとなって全ユーザーの画面に波及する」** という、一体感を生み出すウェブアプリを企画・開発しました。
+そこで、「簡単にみんなの意見を収集し、一目で全体の傾向がわかる」という実用性に加え、**「ユーザーのアクションが即座に光やアニメーションとなって全ユーザーの画面に波及する」** という、一体感を生み出すウェブアプリを自ら企画・開発しました。
 
 ---
 
@@ -23,7 +24,7 @@
 ### スクリーンショット（ギャラリー）
 | トップダッシュボード | 投票作成フロー |
 | :---: | :---: |
-| ![トップ画面](./assets/top_screen.png) | ![作成フォーム](./assets/create_poll.png) |
+| ![トップ画面](./assets//top_screen.png) | ![作成フォーム](./assets/create_poll.png) |
 | **リアルタイム同期と演出** | **検索機能** |
 | ![流星や花火の演出](./assets/effect.gif) | ![検索結果](./assets/search.png) |
 | **ソート機能** | **モバイル表示 (PWA)** |
@@ -31,11 +32,11 @@
 
 ### 主な機能
 *   **ゼロ・ディレイのリアルタイム同期 (SPA)**
-    *   ページリロードなしで、世界中の投票結果がプログレスバーに反映されます。
+    *   ページリロードなしで、世界中の投票結果がミリ秒単位でプログレスバーに反映されます。
 *   **環境連動型バックグラウンド & ライブ・エフェクト**
-    *   **Night Sky Mode**: 星空と雲が流れる中、投票発生時に「流星」が流れる演出。
-    *   **Fireworks Mode**: 提灯が揺れる夜景を背景に、投票と連動して「花火」が打ち上がる演出。
-    *   投票ボタン押下時には `+1` のパーティクルが飛び出し、インタラクションによる手応えを提供します。
+    *   **Night Sky Mode**: 星空と雲が流れる中、投票発生時に「流星（Shooting Stars）」が流れる演出。
+    *   **Fireworks Mode**: 提灯が揺れる夜景を背景に、投票と連動して「花火」が物理演算風に打ち上がる演出。
+    *   投票ボタン押下時には `+1` のパーティクルが飛び出し、マイクロインタラクションによる手応えを提供します。
 *   **高度なダッシュボード機能 (検索・ソート・期限管理)**
     *   インクリメンタルサーチによる「キーワード＆UUID検索」。
     *   「新着順」「人気順」「期限間近順」を瞬時に切り替えるセグメンテッドコントロール。
@@ -47,29 +48,108 @@
 
 ---
 
-## 使用技術 (技術スタック)
+## 技術的詳細 (Technical Details)
 
-### フロントエンド
-*   **Framework:** Next.js 15 (App Router)
-*   **Language:** TypeScript
-*   **Styling:** Tailwind CSS v4 (Glassmorphism, Dashboard Layout `zoom: 0.9`)
-*   **Animation:** Framer Motion (AnimatePresence, layout animation)
-*   **Font:** Geist Sans / Geist Mono
+本プロジェクトは、モダンなフロントエンド技術とサーバーレスバックエンディングを組み合わせた、イベント駆動型のリアルタイムアプリケーションです。
 
-### バックエンド / インフラ
-*   **BaaS:** Supabase (PostgreSQL, Realtime subscriptions)
-*   **Deployment:** Vercel
-*   **DevOps:** GitHub Actions (Cron Workflow による Keep-alive Ping)
+### 1. アーキテクチャとディレクトリ構造 (Architecture)
 
-### システム構成図
-```mermaid
-graph LR
-    User[ユーザーブラウザ] -- 1. 投票アクション --> RPC[Supabase RPC 関数]
-    RPC -- 2. 排他制御カウントアップ --> DB[(PostgreSQL)]
-    DB -- 3. Postgres Changes --> Realtime[Supabase Realtime]
-    Realtime -- 4. WebSocket プッシュ通知 --> AllUsers[全接続クライアント]
-    AllUsers -- 5. State更新 --> UI[花火/流星エフェクト発火]
+Next.js (App Router) を採用し、論理的な関心の分離（Separation of Concerns）に基づいたディレクトリ構成としています。
+
+```bash
+├── app/
+│   ├── layout.tsx         # Root Layout: グローバルフォント、Base CSS、BackgroundProviderの注入
+│   ├── page.tsx           # Home Page: ポーリングデータの取得、ソート・フィルタリング、モーダル管理
+│   └── globals.css        # Tailwind CSS Directives & Custom Variables
+├── components/
+│   ├── PollCard.tsx       # Domain Component: 投票ロジック、楽観的UI更新、個別サブスクリプション
+│   ├── CreatePollForm.tsx # Domain Component: バリデーション付き新規作成フォーム
+│   ├── BackgroundProvider.tsx # Context: 背景モード（NightSky/Fireworks）の状態管理
+│   ├── NightSkyBackground.tsx # Visual Component: 星空・流星パーティクル制御 (Canvas/DOM mixed)
+│   └── FireworksBackground.tsx # Visual Component: 物理演算風の提灯揺れ・花火エフェクト
+├── lib/
+│   └── supabase.ts        # Singleton: Supabase Client Instance (Environment Variables)
+└── types/
+    └── index.ts           # Type Definitions: DBスキーマとフロントエンドの型共有
 ```
+
+*   **コンポーネント設計思想**:
+    *   **Container/Presentational パターン**: `page.tsx` がデータフェッチと全体の状態管理（Container）を担い、`PollCard.tsx` 等が個別のレンダリングとインタラクション（Presentational）に集中する設計を採用し、再利用性を高めています。
+    *   **Context API**: `BackgroundProvider` により、UIの深層にあるコンポーネントと同階層の背景コンポーネント間で、Propsのバケツリレーなしに状態（モード切り替え）を共有。
+
+### 2. データフローと状態管理 (Data Flow & State)
+
+アプリケーションの核となるデータの流れは、「初期ロード → リアルタイム同期 → 楽観的更新」の3段階で構成されています。
+
+1.  **Initial Fetching (Client-side Fetching)**:
+    *   `page.tsx` の `useEffect` フックにて、`Supabase Client` を通じて初期データを非同期取得。
+    *   読み込み中は `Loading...` インジケータを表示し、Cumulative Layout Shift (CLS) を防止。
+
+2.  **Realtime Synchronization (WebSocket)**:
+    *   **グローバル監視 (page.tsx)**: `postgres_changes` (Event: `INSERT`) を購読。新しい投票が作成されると、再フェッチを行わずに State の先頭にオブジェクトを追加し、即座にフィードへ反映。
+    *   **行レベル監視 (PollCard.tsx)**: 各カードコンポーネントが自身の `id` に紐づく `UPDATE` イベントのみを購読。データ転送量を最小限に抑えつつ、他ユーザーの投票結果をミリ秒単位でプログレスバーに反映。
+
+3.  **Optimistic UI Updates (UX Optimization)**:
+    *   投票ボタン押下時、サーバーからのレスポンス（ACK）を待たずに `setPoll` でローカルの数値を `+1` し、UIを即時更新。
+    *   ユーザーに「通信待ち」のストレスを感じさせないネイティブアプリライクな挙動を実現。エラー発生時のみロールバック処理を実行し、整合性を担保。
+
+### 3. 🛠 データベース設計とセキュリティ (Database & Security)
+
+Supabase (PostgreSQL) の機能を最大限に活用し、堅牢性と整合性を確保しています。
+
+*   **Schema Design**:
+    *   `polls` テーブル: `id` (UUID), `question` (Text), `created_at/expires_at` (Timestamp)
+    *   **JSONB Column (`options`)**: リレーショナルな別テーブル（`options`テーブル）を作らず、`polls` テーブル内の `jsonb` カラムに選択肢データと票数を配列として格納。これにより、JOIN操作不要で一度のクエリで全データを取得可能にし、Read性能を最大化。
+
+*   **RPC (Remote Procedure Call) による排他制御**:
+    *   **課題**: クライアント側で `currentVotes + 1` して `UPDATE` する実装では、同時アクセス時に更新の競合（Race Condition）が発生し、票の消失が起こり得る。
+    *   **解決策**: PostgreSQLのストアドプロシージャ `vote_for_option` を定義。
+        データベース内部でアトミックに `jsonb_set(... votes + 1)` を実行することで、数千人が同時に投票ボタンを押しても、全ての票を正確にカウントアップする ACID特性を保証。
+
+*   **RLS (Row Level Security)**:
+    *   `anon` (匿名ユーザー) ロールに対し、`SELECT` (閲覧) と `vote_for_option` (RPC実行) のみを許可。
+    *   直接的な `UPDATE` や `DELETE` 権限を剥奪することで、悪意あるユーザーによるデータ改ざんや削除を防止。
+
+### 4. UI/UXデザインとアニメーション (Design & Motion)
+
+*   **Glassmorphism System**:
+    *   Tailwind CSS のユーティリティ `bg-white/5` (透過度5%)、`backdrop-blur-md` (背景ぼかし)、`border-white/10` を組み合わせ、視認性を保ちつつ背景の動的エフェクトを透かすモダンなレイヤー構造を構築。
+
+*   **Declarative Animation (Framer Motion)**:
+    *   **Layout Animation**: `layout` プロパティを使用し、リストのフィルタリングやソート切り替え時に、要素が瞬時に切り替わるのではなく、物理演算に基づき滑らかに移動・整列するアニメーションを実装。
+    *   **Micro-interactions**: 投票時の `+1` ポップアップ、完了時の `AnimatePresence` による要素の退場処理など、ユーザーの操作に対するフィードバックを徹底。
+
+*   **Dynamic Background Logic**:
+    *   `NightSky` モードでは Canvas ではなく DOM ベースのパーティクルを採用し、CSS Transform で負荷をGPUにオフロード。
+    *   `Fireworks` モードでは、リアルタイムイベント (`UPDATE`通知) をトリガーとして座標計算を行い、ランダムな位置ではなく「誰かが投票した瞬間」に視覚効果を発生させることで、ユーザー間の「つながり」を可視化。
+
+### 5. パフォーマンスと品質担保 (Performance & Quality)
+
+*   **Rendering Optimization**:
+    *   `PollCard.tsx` 内で `prevVotes` を `useRef` で保持し、前回の票数と比較。差分がある場合のみアニメーションを発火させることで、不要な再レンダリングコストを削減。
+    *   背景コンポーネントのパーティクル（星、雲）は `useEffect` 内で一度だけ生成し、Reactのレンダリングサイクルから切り離して管理することで、メインスレッドのブロッキングを回避。
+
+*   **Type Safety (TypeScript)**:
+    *   `index.ts` にて `Poll`, `PollOption` インターフェースを厳格に定義。APIレスポンスの型推論を効かせることで、`undefined` アクセスによるランタイムエラーを開発段階で撲滅。
+
+*   **Error Handling**:
+    *   `try-catch` ブロックによるAPIエラーの捕捉に加え、`finally` ブロックで `loading` ステートを確実に解除することで、エラー時にUIがロード中のまま固まる（Frozen UI）状態を回避。
+
+### 6. 拡張性と将来の展望 (Scalability)
+
+現在のアーキテクチャは疎結合に保たれており、以下の機能追加にも柔軟に対応可能です。
+
+*   **認証機能の導入 (Auth)**:
+    *   Supabase Auth を有効化し、`PollCard` 内の `user_id` チェックを追加するだけで、会員限定投票や「1人1票」の厳密な制限が可能。
+*   **データ可視化 (Analytics)**:
+    *   現在の `options` JSONB 構造はそのまま Recharts 等のグラフライブラリの入力データ形式として適合するため、容易に円グラフや棒グラフの実装が可能。
+*   **OGP生成 (Viral Marketing)**:
+    *   `vercel/og` を利用し、動的な投票結果画像を生成するAPIルートを追加することで、SNSシェア時の流入効果を最大化できる設計余地を残しています。
+
+---
+
+## GitHub Actions による運用
+Supabase の無料プラン（Free Tier）では、一定期間アクセスがないとプロジェクトが一時停止（Pause）される仕様に対応するため、GitHub Actions にて毎日定期的に本番環境へ Ping を送信する自動ワークフローを構築しています。
 
 ---
 
@@ -80,23 +160,5 @@ graph LR
 
 ---
 
-## 工夫した点・苦労した点
-
-### 1. リアルタイム通信の安定化とタイムアウトの克服
-開発初期、Supabase Realtime の接続が `TIMED_OUT` で切断され、背景コンポーネントの切り替え時に `CLOSED` 状態に陥る致命的なバグに直面しました。
-これに対し、コンポーネントのマウント時に「Math.random() を用いたユニークなチャンネルID」を生成し、アンマウント時のクリーンアップ関数で確実に個別のチャンネルを破棄する（`removeChannel`）設計に変更。さらに RLS（Row Level Security）のポリシーを最適化することで、安定した双方向通信を確立しました。
-
-### 2. トランザクションと排他制御（Race Condition の防止）
-投票数のカウントアップにおいて、クライアント側で「取得して+1して保存」する実装では、同時アクセス時に票が消失する「競合」が発生するリスクがありました。
-データの完全性を担保するため、**PostgreSQL のストアドプロシージャ（RPC: Remote Procedure Call）** を採用。データベース内部でアトミックな加算処理（`UPDATE ... SET votes = votes + 1`）を行う専用関数 `vote_for_option` を作成し、堅牢なデータ整合性を実現しました。
-
-### 3. DOM描画パフォーマンスとUXの両立
-数十個のパーティクル（星、花火、流星）をブラウザ上で滑らかに動かすため、Framer Motion を駆使し、不要になったDOM要素を `<AnimatePresence>` で適切に破棄するメモリ管理を行いました。また、ハイドレーションエラー（Hydration Mismatch）を防ぐためのクライアントサイドレンダリングの制御も徹底しています。
-
----
-
-## 既知の課題と今後の展望
-*   **不正投票防止の強化**: 現在は LocalStorage を用いてブラウザ単位で二重投票を防いでいますが、今後は IPアドレス制限やデバイスフィンガープリント、または匿名認証を導入し、セキュリティを向上させたいです。
-*   **シェア機能の拡充**: 投票結果のグラフを OGP 画像として動的に生成し、X（旧Twitter）などで共有しやすくするバイラル機能の追加。
-*   **データ可視化**: 投票の推移を時系列の折れ線グラフ（Recharts等を使用）で確認できる詳細分析ページの作成。
-
+## ✉️ 連絡先
+*   **GitHub**: [https://github.com/kai-1208](https://github.com/kai-1208)
