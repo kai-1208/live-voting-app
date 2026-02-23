@@ -25,7 +25,7 @@
 | :---: | :---: |
 | ![トップ画面](./assets/top_screen.png) | ![作成フォーム](./assets/create_poll.png) |
 | **リアルタイム同期と演出** | **検索機能** |
-| ![流星や花火の演出](./assets/effect.mp4) | ![検索結果](./assets/search.png) |
+| ![流星や花火の演出](./assets/effect.gif) | ![検索結果](./assets/search.png) |
 | **ソート機能** | **モバイル表示 (PWA)** |
 | ![ソート結果](./assets/sort.png) | ![スマホ画面](./assets/mobile.png) |
 
