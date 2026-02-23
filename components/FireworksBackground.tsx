@@ -151,18 +151,12 @@ export default function FireworksBackground() {
 
 function FireworkEffect({ x, y, color, onComplete }: { x: number; y: number; color: string; onComplete?: () => void }) {
   const particleCount = 60; 
-  const displayColor = ["#FFFF00", "#FF0000"][Math.floor(Math.random() * 2)];
-
+  
   return (
     <motion.div 
         className="absolute inset-0 pointer-events-none"
         initial={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onAnimationComplete={() => {
-            // This fires when the *container* finishes animating.
-            // But the container doesn't have an animate prop here, only children do.
-            // We need to wait for children.
-        }}
     >
        {/* Explosion Sparks */}
        <div 
@@ -180,8 +174,8 @@ function FireworkEffect({ x, y, color, onComplete }: { x: number; y: number; col
                  style={{ 
                     width: "4px",
                     height: "4px",
-                    backgroundColor: displayColor,
-                    boxShadow: `0 0 8px ${displayColor}`,
+                    backgroundColor: color,
+                    boxShadow: `0 0 8px ${color}`,
                  }}
                  initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
                  animate={{ 

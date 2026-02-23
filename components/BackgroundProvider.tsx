@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import NightSkyBackground from "./NightSkyBackground";
 import FireworksBackground from "./FireworksBackground";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,8 +25,20 @@ export function useBackground() {
 export function BackgroundProvider({ children }: { children: ReactNode }) {
   const [background, setBackground] = useState<BackgroundType>("night_sky");
 
+  useEffect(() => {
+    // Load persisted background state on mount
+    const saved = localStorage.getItem("app-background") as BackgroundType;
+    if (saved && (saved === "night_sky" || saved === "fireworks")) {
+      setBackground(saved);
+    }
+  }, []);
+
   const toggleBackground = () => {
-    setBackground((prev) => (prev === "night_sky" ? "fireworks" : "night_sky"));
+    setBackground((prev) => {
+      const next = prev === "night_sky" ? "fireworks" : "night_sky";
+      localStorage.setItem("app-background", next);
+      return next;
+    });
   };
 
   return (
