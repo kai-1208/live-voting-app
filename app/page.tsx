@@ -45,22 +45,45 @@ export default function Home() {
   useEffect(() => {
     fetchPolls();
 
-    // Subscribe to new polls
+    // Subscribe to changes (INSERT, UPDATE, DELETE)
     const channelId = `main-polls-${Math.random()}`;
     const channel = supabase
       .channel(channelId)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'polls' },
+        { event: '*', schema: 'public', table: 'polls' },
         (payload) => {
-          const newPoll = payload.new as Poll;
-          setPolls((prevPolls) => {
-            // Check if the poll is already in the list to avoid duplicates
-            if (prevPolls.some(p => p.id === newPoll.id)) {
-              return prevPolls;
-            }
-            return [newPoll, ...prevPolls];
-          });
+          if (payload.eventType === 'INSERT') {
+            const newPoll = payload.new as Poll;
+            setPolls((prevPolls) => {
+              if (prevPolls.some(p => p.id === newPoll.id)) return prevPolls;
+              return [newPoll, ...prevPolls];
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setPolls((prevPolls) => prevPolls.filter((p) => p.id !== (payload.old as { id: string }).id));
+          } else if (payload.eventType === 'UPDATE') {
+             // Only update if critical fields changed (to avoid re-rendering list on every vote)
+             const updatedPoll = payload.new as Poll;
+             const oldPoll = payload.old as Poll;
+             
+             // Check if question or expires_at changed. We ignore vote updates here to prevent heavy re-renders.
+             // Note: payload.old only contains ID in some configs unless replica identity is full.
+             // But usually payload.new has everything. 
+             // We can compare with current state in setPolls callback.
+             setPolls((prevPolls) => {
+                 return prevPolls.map(p => {
+                     if (p.id === updatedPoll.id) {
+                         // Only if question or critical metadata changed
+                         if (p.question !== updatedPoll.question || p.expires_at !== updatedPoll.expires_at) {
+                             return updatedPoll;
+                         }
+                         // Otherwise return existing object reference to avoid re-renders
+                         return p;
+                     }
+                     return p;
+                 });
+             });
+          }
         }
       )
       .subscribe();

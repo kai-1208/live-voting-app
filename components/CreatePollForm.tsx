@@ -74,7 +74,7 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
         color: OPTION_COLORS[index].class
       }));
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("polls")
         .insert([
           {
@@ -86,10 +86,18 @@ export default function CreatePollForm({ onPollCreated }: CreatePollFormProps) {
             expires_at: new Date(expiresAt).toISOString(),
           },
         ])
-        .select();
+        .select()
+        .single(); // 結果を一件取得・エラーの場合は例外
 
       if (error) {
         throw error;
+      }
+
+      // 作成した投票IDをローカルストレージに保存（編集・削除権限用）
+      if (data) {
+        const createdPolls = JSON.parse(localStorage.getItem('my_created_polls') || '[]');
+        createdPolls.push(data.id);
+        localStorage.setItem('my_created_polls', JSON.stringify(createdPolls));
       }
 
       // 入力欄クリア
